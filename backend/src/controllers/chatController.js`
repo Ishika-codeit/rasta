@@ -1,0 +1,124 @@
+const { createActionPlan } = require("../services/actionPlanner");
+const { detectIntent, generateVoiceResponse, translateText } = require("../services/aiService");
+const { getClarificationQuestion } = require("../services/questionEngine");
+const { findRelevantSchemes } = require("../services/schemeDiscovery");
+const Service = require("../models/Service");
+const Conversation = require("../models/Conversation");
+const Application = require("../models/Application");
+const UserProfile = require("../models/UserProfile");
+
+const chat = async (req, res) => {
+
+    try {
+        const { message, intent, voice = false } = req.body;
+        const userId = req.user.id;
+
+        if (!message && !intent) {
+            return res.status(400).json({
+                success: false,
+                message: "Message or intent is required"
+            });
+        }
+
+        let conversation = await Conversation.findOne({ userId });
+        if (!conversation) {
+            conversation = new Conversation({ userId, messages: [] });
+        }
+
+        const userProfile = await UserProfile.findOne({ userId });
+        const userApplications = await Application.find({ userId }).populate("serviceId");
+        const history = conversation.messages.map(m => ({ role: m.role, content: m.content }));
+
+        const systemContext = {
+            role: "system",
+            content: `USER_CONTEXT:
+            Verified Data: ${JSON.stringify(userProfile?.verifiedData || "None")}
+            Active Applications: ${JSON.stringify(userApplications.map(a => ({ service: a.serviceId.name, status: a.status })))}
+            `
+        };
+
+        const contextualHistory = [systemContext, ...history];
+        let aiResult;
+        let responseText = "";
+        let finalData = {};
+
+        if (message) {
+            aiResult = await detectIntent(message, contextualHistory);
+            const clarification = await getClarificationQuestion(aiResult);
+
+            if (clarification) {
+                responseText = clarification.question;
+                conversation.messages.push({ role: 'user', content: message });
+                conversation.messages.push({ role: 'assistant', content: responseText });
+                await conversation.save();
+
+                // Translate the clarification question
+                const translatedQuestion = await translateText(responseText, aiResult.language);
+                const voiceResponse = voice ? await generateVoiceResponse({ question: translatedQuestion }, "clarification") : null;
+
+                return res.status(200).json({
+                    success: true,
+                    intent: aiResult.intent,
+                    goal: aiResult.goal,
+                    language: aiResult.language,
+                    clarification: {
+                        ...clarification,
+                        question: translatedQuestion
+                    },
+                    voiceResponse
+                });
+            }
+        } else {
+            aiResult = { intent: intent };
+        }
+
+        if (aiResult.intent === "check_application_status") {
+            if (userApplications.length === 0) {
+                responseText = "You haven't started any applications yet. Would you like to find a service to apply for?";
+            } else {
+                const statusList = userApplications.map(app =>
+                    `${app.serviceId.name}: ${app.status} ${app.trackingNumber ? `(Tracking ID: ${app.trackingNumber})` : ""}`
+                ).join("\n");
+                responseText = `Here is the current status of your applications:\n${statusList}`;
+            }
+            finalData = { applications: userApplications };
+        } else if (aiResult.intent === "scheme_discovery") {
+            const schemes = await findRelevantSchemes(aiResult.category);
+            responseText = `I found some schemes that might help you: ${schemes.map(s => s.name).join(", ")}`;
+            finalData = { schemes };
+        } else {
+            const service = await Service.findOne({ intent: aiResult.intent, verified: true });
+            if (!service) {
+                return res.status(404).json({ success: false, message: "No verified service found", intent: aiResult.intent });
+            }
+            const actionPlan = createActionPlan(service);
+            responseText = `Here is the action plan for ${service.name}.`;
+            finalData = { service: { name: service.name, description: service.description }, actionPlan };
+        }
+
+        if (message) {
+            conversation.messages.push({ role: 'user', content: message });
+        }
+        conversation.messages.push({ role: 'assistant', content: responseText });
+        await conversation.save();
+
+        // Translate the final response text
+        const translatedResponse = await translateText(responseText, aiResult.language);
+        const voiceResponse = voice ? await generateVoiceResponse(finalData, aiResult.intent) : null;
+
+        res.status(200).json({
+            success: true,
+            intent: aiResult.intent,
+            goal: aiResult.goal || "apply",
+            language: aiResult.language || "en",
+            message: translatedResponse,
+            ...finalData,
+            voiceResponse
+        });
+    } catch (error) {
+        console.error("Chat Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = { chat };

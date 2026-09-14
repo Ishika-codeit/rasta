@@ -1,38 +1,46 @@
-import { useState } from "react";
-import Header from "./components/Header";
-import Dashboard from "./pages/Dashboard";
-import AllSchemes from "./pages/AllSchemes";
-import MyApplications from "./pages/MyApplications";
-import UpdateProfile from "./pages/UpdateProfile";
-import DocumentLocker from "./pages/DocumentLocker";
-import AskRaastaAI from "./pages/AskRaastaAI";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
+import PrivateRoute from './components/PrivateRoute';
 
-const PAGES = {
-  dashboard: Dashboard,
-  "all-schemes": AllSchemes,
-  "my-applications": MyApplications,
-  "update-profile": UpdateProfile,
-  "document-locker": DocumentLocker,
-  "ask-raasta-ai": AskRaastaAI,
-};
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ChatPage from './pages/ChatPage';
+import DashboardPage from './pages/DashboardPage';
+import VerifyPage from './pages/VerifyPage';
+import SchemeDirectoryPage from './pages/SchemeDirectoryPage';
+import SchemeDetailsPage from './pages/SchemeDetailsPage';
+import DocumentLockerPage from './pages/DocumentLockerPage';
+import ApplicationsPage from './pages/ApplicationsPage';
 
-export default function App() {
-  const [activePage, setActivePage] = useState("dashboard");
-  const [activeLang, setActiveLang] = useState("en");
-
-  const PageComponent = PAGES[activePage] || Dashboard;
-
+function App() {
   return (
-    <div className="bg-background font-body-md text-body-md text-on-surface antialiased min-h-screen pt-20">
-      <Header
-        activePage={activePage}
-        onNavigate={setActivePage}
-        activeLang={activeLang}
-        onLangChange={setActiveLang}
-      />
-      <div className="px-10">
-        <PageComponent onNavigate={setActivePage} />
-      </div>
-    </div>
+    <LanguageProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            {/* Protected Routes */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/verify" element={<VerifyPage />} />
+              <Route path="/schemes" element={<SchemeDirectoryPage />} />
+              <Route path="/schemes/:id" element={<SchemeDetailsPage />} />
+              <Route path="/locker" element={<DocumentLockerPage />} />
+              <Route path="/applications" element={<ApplicationsPage />} />
+            </Route>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
+
+export default App;

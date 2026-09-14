@@ -1,0 +1,147 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
+  Loader2
+} from 'lucide-react';
+import api from '../api/api';
+import { useAuth } from '../context/AuthContext';
+
+const ApplicationsPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        // Using the current user ID from context
+        const res = await api.get(`/applications/user/${user.id}`);
+        if (res.data.success) {
+          setApplications(res.data.applications);
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load applications');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchApplications();
+    }
+  }, [user?.id]);
+
+  const getStatusStyles = (status) => {
+    switch (status) {
+      case 'Eligible - Ready to Apply':
+        return 'bg-green-100 text-green-700';
+      case 'Rejected':
+        return 'bg-red-100 text-red-700';
+      case 'Submitted':
+      case 'Under Review':
+        return 'bg-blue-100 text-blue-700';
+      case 'Approved':
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-slate-100 text-slate-600';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium">Loading your applications...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+      <div className="max-w-5xl mx-auto">
+        <header className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-900">My Applications</h1>
+              <p className="text-slate-500">Track the status of your government service requests</p>
+            </div>
+          </div>
+        </header>
+
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5" />
+            {error}
+          </div>
+        )}
+
+        {applications.length === 0 ? (
+          <div className="bg-white p-20 rounded-3xl border border-dashed border-slate-300 text-center">
+            <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText className="text-slate-400 w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No applications found</h3>
+            <p className="text-slate-500 mb-8">You haven't started any applications yet.</p>
+            <Link to="/chat" className="px-6 py-2 bg-primary text-white rounded-full font-semibold hover:bg-blue-700 transition-all">
+              Start Application with AI
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {applications.map((app) => (
+              <div key={app._id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl ${
+                    app.status === 'Eligible - Ready to Apply' ? 'bg-green-50 text-green-600' :
+                    app.status === 'Rejected' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                  }`}>
+                    {app.status === 'Eligible - Ready to Apply' ? <CheckCircle className="w-5 h-5" /> :
+                     app.status === 'Rejected' ? <AlertCircle className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-lg">{app.serviceId?.name || 'Government Service'}</h4>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getStatusStyles(app.status)}`}>
+                        {app.status}
+                      </span>
+                      {app.trackingNumber && (
+                        <span className="text-xs text-slate-400">Tracking ID: {app.trackingNumber}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400">Last updated: {new Date(app.updatedAt).toLocaleDateString()}</span>
+                  <button
+                    onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/applications/download-plan/${app._id}`, '_blank')}
+                    className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-primary hover:text-white transition-all"
+                    title="Download Action Plan"
+                  >
+                    <FileText className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ApplicationsPage;

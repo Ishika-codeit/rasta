@@ -1,0 +1,37 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+const LanguageContext = createContext();
+
+const SUPPORTED_LANGUAGES = {
+  en: 'English',
+  hi: 'हिन्दी',
+  bn: 'বাংলা',
+  te: 'తెలుగు',
+  mr: 'मराठी',
+  ta: 'தமிழ்',
+  gu: 'ગુજરાતી',
+  kn: 'ಕನ್ನಡ',
+  ml: 'മലയാളം'
+};
+
+export const LanguageProvider = ({ children }) => {
+  const [language, setLanguage] = useState(localStorage.getItem('app_lang') || 'en');
+
+  useEffect(() => {
+    localStorage.setItem('app_lang', language);
+  }, [language]);
+
+  const changeLanguage = (lang) => {
+    if (SUPPORTED_LANGUAGES[lang]) {
+      setLanguage(lang);
+    }
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, changeLanguage, SUPPORTED_LANGUAGES }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+export const useLanguage = () => useContext(LanguageContext);

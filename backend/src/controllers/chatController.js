@@ -1,5 +1,5 @@
 const { createActionPlan } = require("../services/actionPlanner");
-const { detectIntent, generateVoiceResponse, translateText, generateSuggestions } = require("../services/aiService");
+const { detectIntent, generateVoiceResponse, translateText, generateSuggestions, generateProTips } = require("../services/aiService");
 const { getClarificationQuestion } = require("../services/questionEngine");
 const { findRelevantSchemes } = require("../services/schemeDiscovery");
 const Service = require("../models/Service");

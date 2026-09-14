@@ -1,0 +1,85 @@
+const axios = require('axios');
+
+/**
+ * IntegrationService handles all communication with external Government APIs.
+ * It uses a Provider pattern to switch between Sandbox (Simulated) and Production.
+ */
+class IntegrationService {
+    constructor() {
+        this.mode = process.env.INTEGRATION_MODE || 'sandbox'; // 'sandbox' or 'production'
+        this.config = {
+            digilocker: {
+                baseUrl: process.env.DIGILOCKER_API_URL || 'https://api.digilocker.gov.in',
+                apiKey: process.env.DIGILOCKER_API_KEY
+            },
+            govPortal: {
+                baseUrl: process.env.GOV_PORTAL_URL || 'https://portal.gov.in/api',
+                apiKey: process.env.GOV_PORTAL_API_KEY
+            }
+        };
+    }
+
+    /**
+     * Simulates or executes the submission of an application to the official Gov Portal.
+     */
+    async submitToGovPortal(serviceId, userData, applicationData) {
+        if (this.mode === 'sandbox') {
+            console.log(`[SANDBOX] Submitting application for service ${serviceId}...`);
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            return {
+                success: true,
+                trackingNumber: `GOV-${Math.random().toString(36).toUpperCase().substr(2, 9)}`,
+                status: 'Submitted',
+                message: 'Application successfully submitted to the official portal.'
+            };
+        }
+
+        // PRODUCTION IMPLEMENTATION
+        try {
+            const response = await axios.post(`${this.config.govPortal.baseUrl}/submit`, {
+                serviceId,
+                user: userData,
+                data: applicationData
+            }, {
+                headers: { 'Authorization': `Bearer ${this.config.govPortal.apiKey}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("GovPortal Submission Error:", error);
+            throw new Error("External Government Portal is currently unavailable.");
+        }
+    }
+
+    /**
+     * Simulates or executes the fetching of verified documents from DigiLocker.
+     */
+    async fetchDigiLockerData(userId) {
+        if (this.mode === 'sandbox') {
+            console.log(`[SANDBOX] Fetching DigiLocker documents for user ${userId}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            return {
+                success: true,
+                documents: [
+                    { type: 'Aadhaar Card', status: 'Verified', fileName: 'aadhaar_verified.pdf' },
+                    { type: 'PAN Card', status: 'Verified', fileName: 'pan_verified.pdf' }
+                ]
+            };
+        }
+
+        // PRODUCTION IMPLEMENTATION
+        try {
+            const response = await axios.get(`${this.config.digilocker.baseUrl}/user/${userId}/documents`, {
+                headers: { 'Authorization': `Bearer ${this.config.digilocker.apiKey}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("DigiLocker Fetch Error:", error);
+            throw new Error("Unable to connect to DigiLocker services.");
+        }
+    }
+}
+
+module.exports = new IntegrationService();

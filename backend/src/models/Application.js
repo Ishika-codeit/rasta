@@ -29,6 +29,10 @@ const applicationSchema = new mongoose.Schema(
             type: String,
             trim: true
         },
+        deadlineDate: {
+            type: Date,
+            default: null
+        },
         notes: {
             type: String
         },

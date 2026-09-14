@@ -3,6 +3,7 @@ const Service = require("../models/Service");
 const NotificationService = require("../services/notificationService");
 const { generateActionPlanPDF } = require("../services/pdfService");
 const { createActionPlan } = require("../services/actionPlanner");
+const integrationService = require("../services/integrationService");
 const path = require("path");
 
 const createApplication = async (req, res) => {
@@ -133,6 +134,55 @@ const getUserApplications = async (req, res) => {
     }
 };
 
+const submitApplication = async (req, res) => {
+    try {
+        const { applicationId } = req.body;
+        const userId = req.user.id;
+
+        const application = await Application.findOne({ _id: applicationId, userId }).populate("serviceId");
+
+        if (!application) {
+            return res.status(404).json({ success: false, message: "Application not found" });
+        }
+
+        if (application.status === "Submitted") {
+            return res.status(400).json({ success: false, message: "Application has already been submitted" });
+        }
+
+        // Integration Step: Submit to Gov Portal
+        const submission = await integrationService.submitToGovPortal(
+            application.serviceId._id,
+            { userId, email: req.user.email },
+            { status: application.status, notes: application.notes }
+        );
+
+        if (submission.success) {
+            application.status = "Submitted";
+            application.trackingNumber = submission.trackingNumber;
+            application.lastUpdatedBy = "system";
+            await application.save();
+
+            await NotificationService.send(userId, {
+                title: "Application Submitted",
+                message: `Your application for ${application.serviceId.name} has been successfully submitted! Tracking ID: ${submission.trackingNumber}`,
+                type: "application_update",
+                channel: "in_app"
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: submission.message,
+                trackingNumber: submission.trackingNumber
+            });
+        }
+
+        throw new Error("Submission failed at government portal.");
+    } catch (error) {
+        console.error("Submission Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 const downloadActionPlan = async (req, res) => {
     try {
         const { applicationId } = req.params;
@@ -167,5 +217,6 @@ module.exports = {
     createApplication,
     updateApplicationStatus,
     getUserApplications,
+    submitApplication,
     downloadActionPlan
 };

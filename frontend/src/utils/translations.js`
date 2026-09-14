@@ -1,0 +1,63 @@
+export const translations = {
+  en: {
+    dashboard: {
+      title: 'My Dashboard',
+      subtitle: 'Manage your government services and applications',
+      profile: 'User Profile',
+      verified: 'Verified Identity',
+      noData: 'No verified data available',
+      verifyNow: 'Verify Now →',
+      appsTitle: 'Your Applications',
+      noApps: 'No applications found',
+      appHint: "You haven't started any applications yet. Use Raasta AI to find the right service.",
+      startNow: 'Start Now',
+    },
+    common: {
+      browseSchemes: 'Browse Schemes',
+      myApps: 'My Applications',
+      myDocs: 'My Documents',
+      verifyDocs: 'Verify Documents',
+      askAI: 'Ask AI',
+      logout: 'Logout'
+    },
+    locker: {
+      title: 'Document Locker',
+      subtitle: 'Your verified government documents',
+      upload: 'Upload Document',
+      type: 'Document Type',
+      file: 'File',
+      submit: 'Upload to Locker'
+    }
+  },
+  hi: {
+    dashboard: {
+      title: 'मेरा डैशबोर्ड',
+      subtitle: 'अपनी सरकारी सेवाओं और आवेदनों का प्रबंधन करें',
+      profile: 'उपयोगकर्ता प्रोफ़ाइल',
+      verified: 'सत्यापित पहचान',
+      noData: 'कोई सत्यापित डेटा उपलब्ध नहीं है',
+      verifyNow: 'अभी सत्यापित करें →',
+      appsTitle: 'आपके आवेदन',
+      noApps: 'कोई आवेदन नहीं मिला',
+      appHint: 'आपने अभी तक कोई आवेदन शुरू नहीं किया है। सही सेवा खोजने के लिए Raasta AI का उपयोग करें।',
+      startNow: 'अभी शुरू करें',
+    },
+    common: {
+      browseSchemes: 'योजनाएं ब्राउज़ करें',
+      myApps: 'मेरे आवेदन',
+      myDocs: 'मेरे दस्तावेज़',
+      verifyDocs: 'दस्तावेज़ सत्यापित करें',
+      askAI: 'AI से पूछें',
+      logout: 'लॉग आउट'
+    },
+    locker: {
+      title: 'दस्तावेज़ लॉकर',
+      subtitle: 'आपके सत्यापित सरकारी दस्तावेज़',
+      upload: 'दस्तावेज़ अपलोड करें',
+      type: 'दस्तावेज़ का प्रकार',
+      file: 'फ़ाइल',
+      submit: 'लॉकर में अपलोड करें'
+    }
+  }
+  // Other languages would be added here
+};

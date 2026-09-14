@@ -3,6 +3,7 @@ dotenv.config();
 
 const app = require('./src/app');
 const connectDB = require('./src/config/db');
+const startDeadlineReminder = require('./src/jobs/deadlineReminder');
 const fs = require('fs');
 const path = require('path');
 
@@ -16,6 +17,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 connectDB();
+startDeadlineReminder();
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);

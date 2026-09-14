@@ -1,0 +1,166 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, Filter, BookOpen, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import api from '../api/api';
+
+const SchemeDirectoryPage = () => {
+  const [schemes, setSchemes] = useState([]);
+  const [filteredSchemes, setFilteredSchemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  useEffect(() => {
+    const fetchSchemes = async () => {
+      try {
+        const res = await api.get('/schemes');
+        if (res.data.success) {
+          setSchemes(res.data.schemes);
+          setFilteredSchemes(res.data.schemes);
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load schemes');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSchemes();
+  }, []);
+
+  useEffect(() => {
+    let result = schemes;
+
+    if (selectedCategory !== 'All') {
+      result = result.filter(s => s.category === selectedCategory);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(s =>
+        s.name.toLowerCase().includes(query) ||
+        s.description.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredSchemes(result);
+  }, [searchQuery, selectedCategory, schemes]);
+
+  const categories = ['All', ...new Set(schemes.map(s => s.category))];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium">Loading schemes directory...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-sm border border-slate-100 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Something went wrong</h2>
+          <p className="text-slate-500 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-primary text-white rounded-xl font-semibold hover:bg-blue-700 transition-all"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-12">
+          <h1 className="text-4xl font-extrabold text-slate-900 mb-4">Government Schemes</h1>
+          <p className="text-slate-500 text-lg max-w-2xl">
+            Browse through available welfare schemes and financial assistance programs designed for you.
+          </p>
+        </header>
+
+        {/* Filters & Search */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="md:col-span-2 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search schemes by name or keywords..."
+              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="relative">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <select
+              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm appearance-none"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Schemes Grid */}
+        {filteredSchemes.length === 0 ? (
+          <div className="bg-white p-20 rounded-3xl border border-dashed border-slate-300 text-center">
+            <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No schemes found</h3>
+            <p className="text-slate-500">Try adjusting your search or filters to find what you're looking for.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredSchemes.map(scheme => (
+              <div key={scheme._id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col group">
+                <div className="flex justify-between items-start mb-4">
+                  <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
+                    {scheme.category}
+                  </span>
+                  {scheme.verified && (
+                    <div className="flex items-center gap-1 text-green-600">
+                      <CheckCircle className="w-3 h-3" />
+                      <span className="text-[10px] font-bold uppercase">Verified</span>
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-primary transition-colors">
+                  {scheme.name}
+                </h3>
+                <p className="text-slate-600 text-sm line-clamp-3 mb-6 flex-1">
+                  {scheme.description}
+                </p>
+                <Link
+                  to={`/schemes/${scheme._id}`}
+                  className="flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-700 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all group-hover:shadow-md"
+                >
+                  View Details <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Helper component for Verified icon since Lucide is imported
+const CheckCircle = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+export default SchemeDirectoryPage;

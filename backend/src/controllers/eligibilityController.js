@@ -67,7 +67,7 @@ const verifyEligibility = async (req, res) => {
                     $push: {
                         uploadedDocuments: {
                             documentType: "Verified Document for " + scheme.name,
-                            verified: true
+                            verified: eligibilityResult.status === "ELIGIBLE"
                         }
                     }
                 },
@@ -76,10 +76,18 @@ const verifyEligibility = async (req, res) => {
         }
 
         let status = "Not Started";
-        if (eligibilityResult.eligible === true) {
-            status = "Eligible - Ready to Apply";
-        } else if (eligibilityResult.eligible === false) {
-            status = "Rejected";
+        switch (eligibilityResult.status) {
+            case "ELIGIBLE":
+                status = "Eligible - Ready to Apply";
+                break;
+            case "NOT_ELIGIBLE":
+                status = "Rejected";
+                break;
+            case "MORE_INFORMATION_REQUIRED":
+                status = "More Information Required";
+                break;
+            default:
+                status = "Under Review";
         }
 
         await Application.findOneAndUpdate(

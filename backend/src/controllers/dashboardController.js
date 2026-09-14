@@ -42,6 +42,8 @@ const getUserDashboard = async (req, res) => {
             recommendations = await Scheme.find({ verified: true }).limit(3);
         }
 
+        const totalSchemes = await Scheme.countDocuments();
+
         return res.status(200).json({
             success: true,
             data: {
@@ -54,6 +56,8 @@ const getUserDashboard = async (req, res) => {
                 stats: {
                     totalApplications: applications.length,
                     unreadNotifications: unreadCount,
+                    totalAvailableSchemes: totalSchemes,
+                    digilockerStatus: "Not Connected",
                     latestApplicationStatus: latestApplication
                         ? {
                             service: latestApplication.serviceId.name,

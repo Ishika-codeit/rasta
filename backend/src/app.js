@@ -9,6 +9,7 @@ const applicationRoutes = require("./routes/applicationRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const documentRoutes = require("./routes/documentRoutes");
 const { protect } = require("./middleware/authMiddleware");
 const errorMiddleware = require("./middleware/errorMiddleware");
 
@@ -42,6 +43,7 @@ app.use("/api/applications", protect, applicationRoutes);
 app.use("/api/notifications", protect, notificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/dashboard", protect, dashboardRoutes);
+app.use("/api/documents", protect, documentRoutes);
 
 // Global Error Handler (Must be the last middleware)
 app.use(errorMiddleware);

@@ -1,0 +1,131 @@
+const Document = require("../models/Document");
+const fs = require("fs");
+const path = require("path");
+const integrationService = require("../services/integrationService");
+const asyncHandler = require("../utils/asyncHandler");
+const ApiError = require("../utils/apiError");
+
+// Upload a new document to the locker
+const uploadDocument = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { documentType } = req.body;
+    const file = req.file;
+
+    if (!documentType) {
+        throw new ApiError(400, "documentType is required", "INVALID_INPUT");
+    }
+
+    if (!file) {
+        throw new ApiError(400, "File upload is required", "NO_FILE");
+    }
+
+    const document = await Document.create({
+        userId,
+        documentType,
+        fileName: file.originalname,
+        filePath: file.path,
+        verificationStatus: "Unverified"
+    });
+
+    res.status(201).json({
+        success: true,
+        document
+    });
+});
+
+// Get all documents for the authenticated user
+const getUserDocuments = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const documents = await Document.find({ userId }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+        success: true,
+        count: documents.length,
+        documents
+    });
+});
+
+// Sync verified documents from DigiLocker
+const syncDigiLocker = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const syncResult = await integrationService.fetchDigiLockerData(userId);
+
+    if (syncResult.success) {
+        const documentsToCreate = syncResult.documents.map(doc => ({
+            userId,
+            documentType: doc.type,
+            fileName: doc.fileName,
+            filePath: `digilocker/${doc.fileName}`,
+            verificationStatus: doc.status,
+            metadata: { source: 'DigiLocker' }
+        }));
+
+        await Document.insertMany(documentsToCreate);
+
+        return res.status(200).json({
+            success: true,
+            message: `Successfully synced ${documentsToCreate.length} documents from DigiLocker.`,
+            count: documentsToCreate.length
+        });
+    }
+
+    throw new ApiError(500, "Failed to sync documents from DigiLocker", "SYNC_FAILED");
+});
+
+// Get specific document details
+const getDocumentDetails = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const document = await Document.findOne({ _id: id, userId });
+
+    if (!document) {
+        throw new ApiError(404, "Document not found or unauthorized", "NOT_FOUND");
+    }
+
+    res.status(200).json({
+        success: true,
+        document
+    });
+});
+
+// Delete a document from the locker
+const deleteDocument = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const document = await Document.findOne({ _id: id, userId });
+
+    if (!document) {
+        throw new ApiError(404, "Document not found or unauthorized", "NOT_FOUND");
+    }
+
+    // Remove file from filesystem
+    try {
+        if (fs.existsSync(document.filePath)) {
+            // Only delete if it's a local file, not a DigiLocker link
+            if (!document.filePath.startsWith('digilocker/')) {
+                fs.unlinkSync(document.filePath);
+            }
+        }
+    } catch (err) {
+        console.error("File deletion error:", err);
+    }
+
+    await document.deleteOne();
+
+    res.status(200).json({
+        success: true,
+        message: "Document deleted successfully"
+    });
+});
+
+module.exports = {
+    uploadDocument,
+    getUserDocuments,
+    syncDigiLocker,
+    getDocumentDetails,
+    deleteDocument
+};

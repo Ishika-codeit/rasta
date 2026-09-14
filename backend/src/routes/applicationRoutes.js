@@ -11,6 +11,7 @@ const router = express.Router();
 router.post("/create", createApplication);
 router.patch("/update", updateApplicationStatus);
 router.get("/user/:userId", getUserApplications);
+router.post("/submit", submitApplication);
 router.get("/download-plan/:applicationId", downloadActionPlan);
 
 module.exports = router;

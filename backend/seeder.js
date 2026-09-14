@@ -50,6 +50,10 @@ const schemesData = [
         verified: true,
         benefits: ["Tuition fee waiver", "Maintenance allowance"],
         eligibility: ["Family income below 2.5 Lakhs", "Belong to SC/ST/OBC category", "Minimum 50% marks in previous exam"],
+        eligibilityRules: {
+            income: { max: 250000 },
+            categories: ["SC", "ST", "OBC"]
+        },
         requiredDocuments: ["Caste Certificate", "Income Certificate", "Marksheets"],
         applicationSteps: ["Register on National Scholarship Portal", "Fill application", "Upload documents", "Get verified by institution"],
         languages: ["en", "hi"]
@@ -62,6 +66,9 @@ const schemesData = [
         verified: true,
         benefits: ["₹6,000 per year in three installments"],
         eligibility: ["Must be a land-holding farmer", "Valid Aadhaar and Bank account"],
+        eligibilityRules: {
+            occupations: ["Farmer"]
+        },
         requiredDocuments: ["Aadhaar Card", "Land ownership documents", "Bank Passbook"],
         applicationSteps: ["Register on PM-Kisan portal", "Enter Aadhaar and land details", "Submit for verification"],
         languages: ["en", "hi"]

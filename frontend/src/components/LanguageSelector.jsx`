@@ -1,0 +1,29 @@
+import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { Globe } from 'lucide-react';
+
+const LanguageSelector = () => {
+  const { language, changeLanguage, SUPPORTED_LANGUAGES } = useLanguage();
+
+  return (
+    <div className="relative inline-block">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-semibold text-slate-600 hover:border-primary transition-all cursor-pointer group">
+        <Globe className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary transition-colors" />
+        <span>{SUPPORTED_LANGUAGES[language]}</span>
+      </div>
+      <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 hidden group-hover:block overflow-hidden">
+        {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
+          <button
+            key={code}
+            onClick={() => changeLanguage(code)}
+            className={`w-full text-left px-4 py-2 text-xs hover:bg-slate-50 transition-colors ${language === code ? 'bg-primary/5 text-primary font-bold' : 'text-slate-600'}`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default LanguageSelector;

@@ -4,6 +4,31 @@ const client = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
+const extractJsonObject = (rawText) => {
+    if (typeof rawText !== "string") {
+        return null;
+    }
+
+    const trimmed = rawText.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    const fencedMatch = trimmed.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/i);
+    if (fencedMatch && fencedMatch[1]) {
+        return fencedMatch[1];
+    }
+
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
+
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        return trimmed.slice(firstBrace, lastBrace + 1);
+    }
+
+    return trimmed;
+};
+
 const detectIntent = async (message, history = []) => {
     const messages = [
         {
@@ -13,6 +38,10 @@ You are the intent detection engine for RaastaAI.
 
 RaastaAI is an AI-powered government service navigator
 for Indian citizens.
+
+CRITICAL INSTRUCTION:
+You will be provided with a conversation history. Use this history to resolve context.
+If the user's current message is a fragment or a reference (e.g., "Caste wala", "The first one", "Yes, that one"), refer to the previous messages to determine the actual intent.
 
 Return ONLY valid JSON. Do NOT include markdown formatting, code blocks, or any preamble.
 Return exactly this structure:
@@ -110,16 +139,12 @@ Rules:
     console.log("AI RAW RESPONSE:", result);
 
     try {
-        // Handle cases where LLM adds conversational fluff around the JSON
-        if (!result.trim().startsWith('{')) {
-            const jsonMatch = result.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                result = jsonMatch[0];
-            } else {
-                throw new Error("No valid JSON found in response");
-            }
+        const sanitizedResult = extractJsonObject(result);
+        if (!sanitizedResult) {
+            throw new Error("No valid JSON found in response");
         }
-        const parsed = JSON.parse(result);
+
+        const parsed = JSON.parse(sanitizedResult);
         console.log("AI PARSED RESULT:", parsed);
         return parsed;
     } catch (error) {
@@ -211,7 +236,11 @@ const generateSuggestions = async (intent, goal, context = {}) => {
         });
 
         const result = response.choices[0].message.content;
-        return JSON.parse(result);
+        const sanitizedResult = extractJsonObject(result);
+        if (!sanitizedResult) {
+            throw new Error("No valid JSON found in response");
+        }
+        return JSON.parse(sanitizedResult);
     } catch (error) {
         console.error("Suggestions Error:", error);
         return ["How can I apply?", "What documents do I need?", "Can you help me with something else?"];

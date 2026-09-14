@@ -35,6 +35,22 @@ const schemeSchema = new mongoose.Schema(
             default: []
         },
 
+        eligibilityRules: {
+            income: {
+                max: { type: Number },
+                min: { type: Number }
+            },
+            age: {
+                max: { type: Number },
+                min: { type: Number }
+            },
+            categories: [String],
+            genders: [String],
+            states: [String],
+            occupations: [String],
+            education: [String]
+        },
+
         requiredDocuments: {
             type: [String],
             default: []
